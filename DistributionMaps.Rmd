@@ -1,0 +1,215 @@
+---
+title: "Agkistrodon Distribution in Southeastern United States"
+author: "Jack Kauphusman"
+date: "11/6/2019"
+output:
+  html_notebook:
+    df_print: paged
+    highlight: breezedark
+    number_sections: yes
+    rows.print: 12
+    theme: cosmo
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+  html_document:
+    df_print: paged
+    toc: yes
+  pdf_document: default
+editor_options:
+  chunk_output_type: inline
+---
+<style type="text/css">
+
+h1.title {
+  font-size: 40px;
+  font-family: "Times New Roman", Times, serif;
+  color: DarkBlue;
+  text-align: center;
+}
+h4.author { /* Header 4 - and the author and data headers use this too  */
+  font-size: 20px;
+  font-family: "Times New Roman", Times, serif;
+  color: DarkBlue;
+  text-align: center;
+}
+</style>
+---
+
+```{r Libraries, include=FALSE}
+library(ggplot2)
+library(dplyr)
+library(knitr)
+library(ggspatial)
+packages<-c("dismo","rgbif","rdryad","utils","readxl","ggridges","viridis","rasterVis","maps","mapdata","raster")
+sapply(packages, require, character.only=T)
+```
+
+# General Introduction
+
+Snake research has been a growing topic, specifically in ecological studies that help to identify snakes roles in ecological systems (Steen et al. 2014). Since snakes are secretive in nature, ecological studies very in number for investigation of certain species. The subfamily Crotalinae contains the pit-viper snakes of the Americas, and has received much attention in research regarding ecology (Douglas et al. 2009, Lomonte et al. 2014) . The pit-vipers of that reside in North America are the Agkistrodon and rattlesnakes (Crotalus and Sistrurus) (Guiher and Burbrink 2008). Ecological research in Agkistrodon has been extensive in some species and very limited in others (Burchfield 1982).  
+
+The species that are among Agkistrodon are A. piscivorus (cottonmouth), A. contrortrix (copperhead), and the cantils (A. taylorii, A. bilineatus, A. russeolus , and A. howardgloydi). Geographically, copperheads and cottonmouths are located in the southeast United States, while the cantils are located throughout Central America (Parkinson et al. 2000, Porras et al. 2013). 
+
+Below, I will be investigating the distribution the genus Agkistrodon throughout the southeastern United States.
+
+# DISMO on Agkistrodon in the U.S.
+
+DISMO is a package from R that allows one to use the datasets from GBIF|Global Biodiversity Information Facility (https://www.gbif.org/), which can be very useful to creat distribution maps of species occurences. 
+
+I will be investigating the distribution between cottonmouths (A. piscivorus) and copperheads (A. contortrix) throughout the southeastern United State.
+
+**Records of cottonmouth data from GIF.**
+```{r Cottonmouth Data}
+extent <- extent(-94,-78,25,40)
+
+agk_dismo <- gbif("agkistrodon", species = "piscivorus", ext = extent,
+             geo = TRUE, sp = TRUE, download = TRUE,
+             removeZeros = TRUE)
+
+agk_xy <- as.data.frame(cbind(agk_dismo@coords[,1],agk_dismo@coords[,2]))
+colnames(agk_xy) <- c("longitude","latitude")
+
+agk_xy<-cbind(agk_xy, data.frame("Species" = "Cottonmouth"))
+
+```
+
+**Records of copperhead data from GIF.**
+```{r Copperhead Data}
+cont_dismo <- gbif("agkistrodon", species = "contortrix", ext = extent,
+             geo = TRUE, sp = TRUE, download = TRUE,
+             removeZeros = TRUE)
+cont_xy <- as.data.frame(cbind(cont_dismo@coords[,1],cont_dismo@coords[,2]))
+colnames(cont_xy) <- c("longitude","latitude")
+cont_xy<-cbind(cont_xy, data.frame("Species" = "Copperhead"))
+```
+
+# Distribution Map
+```{r GBIF Map}
+snake_xy<-rbind(cont_xy, agk_xy)
+us <- map_data("state")
+
+ggplot(data = snake_xy, aes(x=longitude, y=latitude)) +
+  geom_polygon(data = us, aes(x=long, y = lat, group = group),
+               fill = "white", color="black") +
+  geom_point(aes(color = Species)) +
+  scale_color_manual(values = c("black", "purple"))+
+  xlab("Longitude") + 
+  ylab("Latitude") +
+  coord_fixed(xlim = c(-94,-75), ylim = c(25,40))+
+  theme(panel.background = element_rect(fill = "lightblue"))
+```
+**Map 1**: Cottonmouth and copperhead distribution map of the southeaster United States based on the records found on GBIF. There were 3,228 records downloaded of cottonmouth points in blue, and 2,508 records downloaded of copperhead points in red. 
+
+There is extensive overlab between the sister species, but you can see that copperheads prefer higher latitudes, while cottonmouths tend to stay near the lower latitudes. 
+
+# Elevation
+
+```{r Using Elevation, fig.height=6, fig.width=10, message=FALSE, warning=FALSE}
+srtm1<-getData(name = "SRTM", lat = 35, lon = -85, path = "./Data")
+srtm2<-getData(name = "SRTM", lat = 35, lon = -90, path = "./Data")
+srtm3<-getData(name = "SRTM", lat = 40, lon = -85, path = "./Data")
+srtm4<-getData(name = "SRTM", lat = 40, lon = -90, path = "./Data")
+srtm5<-getData(name = "SRTM", lat = 30, lon = -85, path = "./Data")
+srtm6<-getData(name = "SRTM", lat = 30, lon = -90, path = "./Data")
+mosaic_strm<-mosaic(srtm1,srtm2,srtm3, srtm4,srtm5,srtm6, fun = mean)
+
+gplot(mosaic_strm) + 
+  geom_raster(aes(fill=value)) +
+   scale_fill_gradientn(colours=c("red","yellow","darkgreen"), "Elevation")+
+  geom_polygon(data = us, aes(x= long, y = lat, group = group),
+               fill = NA, color="black")+
+  coord_fixed(xlim = c(-80,-90), ylim = c(25,40))+
+  geom_point(data = snake_xy,aes(x = longitude, y = latitude,color = Species), alpha = 0.5)+
+    scale_color_manual(values = c("black", "purple"))+
+  xlab("Longitude")+
+  ylab("Latitude")+
+  ggtitle("Elevation Map")
+
+```
+**Map 2:** Cottonmouth and copperhead distribution along an elevation map of the southeastern United States.
+
+Based on observations from Map 2, one can observe that cottonmouths tend to avoid higher elevation.
+
+# Climate Variables
+
+Below, I performed probability distribution maps from both the cottonmouth and copperhead species, to see to what affect climate had on identifying the snakes probability of occurance. 
+
+```{r species distribution, echo=TRUE, message=FALSE, warning=FALSE}
+bioclim <- getData(name = "worldclim", res = 2.5, var = "bio", path = "./Data")
+
+names(bioclim) <- c("Ann Mean Temp","Mean Diurnal Range","Isothermality","Temperature Seasonality",
+                           "Max Temp Warmest Mo","Min Temp Coldest Mo","Ann Temp Range","Mean Temp Wettest Qtr",
+                           "Mean Temp Driest Qtr","Mean Temp Warmest Qtr","Mean Temp Coldest Qtr","Annual Precip",
+                           "Precip Wettest Mo","Precip Driest Mo","Precip Seasonality","Precip Wettest Qtr",
+                           "Precip Driest Qtr","Precip Warmest Qtr","Precip Coldest Qtr")
+
+bio_extent <- extent(x = c(
+  min(agk_xy$longitude),
+  max(agk_xy$longitude),
+  min(agk_xy$latitude),
+  max(agk_xy$latitude)))
+
+bioclim_extent <- crop(x = bioclim, y = bio_extent)
+bioclim_model <- bioclim(x = bioclim_extent, p = agk_xy[,1:2])
+presence_model <- dismo::predict(object = bioclim_model, 
+                                 x = bioclim_extent, 
+                                 ext = bio_extent)
+```
+
+```{r Cottonmouth Prob Map, echo=TRUE, fig.height=6, fig.width=10, message=FALSE, warning=FALSE}
+gplot(presence_model) + 
+  geom_raster(aes(fill=value)) +
+  geom_polygon(data = us, aes(x= long, y = lat, group = group),
+               fill = NA, color="black") +
+  geom_point(data = agk_xy, aes(x = longitude, y = latitude), color = "purple", alpha = 1) +
+  scale_fill_gradientn(colours=c("brown","yellow","darkgreen"), "Probability") +
+  coord_fixed(xlim = c(max(snake_xy$longitude),min(snake_xy$longitude)), ylim = c(min(snake_xy$latitude),max(snake_xy$latitude))) +
+  xlab("Longitude") + ylab("Latitude") + ggtitle("Probability of Cottonmouth Occurrence") + 
+  theme(panel.background = element_rect(fill = "lightblue"))+ theme(plot.title = element_text(hjust = 0.5)) + theme(legend.position = "right")+
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())
+```
+**Map 3:** Probabilitiy of occurance of cottonmouths using climatic variables. 
+
+```{r Copperhead Prob Map, fig.height=6, fig.width=10, message=FALSE, warning=FALSE}
+bioclim_model1 <- bioclim(x = bioclim_extent, p = cont_xy[,1:2])
+presence_model <- dismo::predict(object = bioclim_model1, 
+                                 x = bioclim_extent, 
+                                 ext = bio_extent)
+
+gplot(presence_model) + 
+  geom_raster(aes(fill=value)) +
+  geom_polygon(data = us, aes(x= long, y = lat, group = group),
+               fill = NA, color="black") +
+  geom_point(data = cont_xy, aes(x = longitude, y = latitude), color = "black", alpha = 0.5) +
+  scale_fill_gradientn(colours=c("brown","yellow","darkgreen"), "Probability") +
+  coord_fixed(xlim = c(max(snake_xy$longitude),min(snake_xy$longitude)), ylim = c(min(snake_xy$latitude),max(snake_xy$latitude))) +
+  xlab("Longitude") + ylab("Latitude") + ggtitle("Probability of Copperhead Occurrence") + 
+  theme(panel.background = element_rect(fill = "lightblue"))+ theme(plot.title = element_text(hjust = 0.5)) + theme(legend.position = "right")+
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())
+```
+**Map 4:** Probabilitiy of occurance of cottonmouths using climatic variables. 
+
+
+# Conclusion
+
+To conclude, both snake species have overlaping distributions, however, cottonmouths prefer lower latitudes with warmer climates and lower elevations opposite to the copperheads distribution patterns. 
+
+# References
+
+GBIF for Speces Data;
+
+https://www.gbif.org/
+
+Important Packages Used;
+
+raster;
+
+https://cran.r-project.org/web/packages/raster/raster.pdf
+
+dismo;
+
+https://cran.r-project.org/web/packages/dismo/dismo.pdf
