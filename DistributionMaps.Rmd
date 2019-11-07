@@ -100,7 +100,7 @@ ggplot(data = snake_xy, aes(x=longitude, y=latitude)) +
   coord_fixed(xlim = c(-94,-75), ylim = c(25,40))+
   theme(panel.background = element_rect(fill = "lightblue"))
 ```
-**Map 1**: Cottonmouth and copperhead distribution map of the southeaster United States based on the records found on GBIF. There were 3,228 records downloaded of cottonmouth points in blue, and 2,508 records downloaded of copperhead points in red. 
+**Map 1**: Cottonmouth and copperhead distribution map of the southeaster United States based on the records found on GBIF. There were 3,228 records downloaded of cottonmouth points in purple, and 2,508 records downloaded of copperhead points in black. 
 
 There is extensive overlab between the sister species, but you can see that copperheads prefer higher latitudes, while cottonmouths tend to stay near the lower latitudes. 
 
@@ -117,7 +117,7 @@ mosaic_strm<-mosaic(srtm1,srtm2,srtm3, srtm4,srtm5,srtm6, fun = mean)
 
 gplot(mosaic_strm) + 
   geom_raster(aes(fill=value)) +
-   scale_fill_gradientn(colours=c("red","yellow","darkgreen"), "Elevation")+
+   scale_fill_gradientn(colours=c("red","lightyellow", "yellow","green","darkgreen"), "Elevation")+
   geom_polygon(data = us, aes(x= long, y = lat, group = group),
                fill = NA, color="black")+
   coord_fixed(xlim = c(-80,-90), ylim = c(25,40))+
@@ -171,7 +171,7 @@ gplot(presence_model) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank())
 ```
-**Map 3:** Probabilitiy of occurance of cottonmouths using climatic variables. 
+**Map 3:** Probabilitiy of occurence of cottonmouths using climatic variables. 
 
 ```{r Copperhead Prob Map, fig.height=6, fig.width=10, message=FALSE, warning=FALSE}
 bioclim_model1 <- bioclim(x = bioclim_extent, p = cont_xy[,1:2])
@@ -191,12 +191,12 @@ gplot(presence_model) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank())
 ```
-**Map 4:** Probabilitiy of occurance of cottonmouths using climatic variables. 
+**Map 4:** Probabilitiy of occurence of copperhead using climatic variables. 
 
 
 # Conclusion
 
-To conclude, both snake species have overlaping distributions, however, cottonmouths prefer lower latitudes with warmer climates and lower elevations opposite to the copperheads distribution patterns. 
+To conclude, both snake species have overlaping distributions, however, cottonmouths prefer lower latitudes with warmer climates and lower elevations opposite to the copperheads observed distribution patterns. 
 
 # References
 
